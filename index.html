@@ -16,9 +16,9 @@
         flex-direction: column;
         background: #f6f7f9;
       }
-      .toolbar {
+      .topbar {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         align-items: center;
         padding: 10px 12px;
         background: #ffffff;
@@ -26,8 +26,7 @@
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
           Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       }
-      .toolbar button,
-      .toolbar a {
+      .topbar a {
         appearance: none;
         border: 1px solid #d8dce2;
         background: #fff;
@@ -38,29 +37,30 @@
         text-decoration: none;
         line-height: 1;
       }
-      .toolbar button:disabled {
-        opacity: 0.5;
-      }
       .spacer {
         flex: 1;
       }
-      .status {
+      .hint {
         font-size: 13px;
         color: #4b5563;
       }
       .viewer {
         flex: 1;
         overflow: auto;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding: 12px;
+        padding: 12px 10px 18px;
       }
-      canvas {
+      .page {
+        display: block;
+        margin: 0 auto 12px;
+        max-width: 100%;
         background: #ffffff;
         box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
-        max-width: 100%;
+        border-radius: 6px;
+      }
+      canvas.page {
         height: auto;
+        width: 100%;
+        max-width: 980px;
       }
       .fallback {
         padding: 16px;
@@ -69,35 +69,69 @@
           sans-serif;
         line-height: 1.5;
       }
-      a {
+      .fallback a {
         word-break: break-all;
+      }
+      .loading {
+        display: flex;
+        justify-content: center;
+        padding: 18px 0 10px;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+          Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+          sans-serif;
+        font-size: 14px;
+        color: #4b5563;
+      }
+      .hidden {
+        display: none;
+      }
+      .notice {
+        margin-top: 10px;
+        color: #6b7280;
+        font-size: 13px;
+      }
+      .btnLink {
+        display: inline-block;
+        margin-top: 10px;
+      }
+      .btnLink a {
+        word-break: break-all;
+      }
+      .pageImg {
+        display: block;
+        margin: 0 auto 12px;
+        max-width: 980px;
+        width: 100%;
+        height: auto;
+        background: #ffffff;
+        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
+        border-radius: 6px;
+      }
+      canvas {
+        background: #ffffff;
       }
     </style>
   </head>
   <body>
     <div class="app">
-      <div class="toolbar" id="toolbar" hidden>
-        <button id="prev" type="button">上一页</button>
-        <button id="next" type="button">下一页</button>
-        <button id="zoomOut" type="button">缩小</button>
-        <button id="zoomIn" type="button">放大</button>
-        <span class="status" id="status">加载中…</span>
+      <div class="topbar">
+        <div class="hint" id="hint">正在加载…</div>
         <div class="spacer"></div>
-        <a id="open" href="catalog.pdf" target="_blank" rel="noreferrer"
-          >打开原文件</a
-        >
+        <a id="open" href="catalog.pdf" target="_blank" rel="noreferrer">打开原文件</a>
       </div>
 
-      <div class="viewer" id="viewer" hidden>
-        <canvas id="canvas"></canvas>
+      <div class="viewer" id="viewer">
+        <div class="loading" id="loading">正在加载…</div>
+        <div id="pages"></div>
       </div>
 
-      <div class="fallback" id="fallback">
-        <div id="fallbackText">正在加载预览组件…</div>
-        <div>
-          请点击打开：
-          <a href="catalog.pdf" target="_blank" rel="noreferrer">catalog.pdf</a
-          >
+      <div class="fallback hidden" id="fallback">
+        <div id="fallbackText">当前环境无法预览，请打开原文件查看。</div>
+        <div class="btnLink">
+          <a href="catalog.pdf" target="_blank" rel="noreferrer">打开 catalog.pdf</a>
+        </div>
+        <div class="notice">
+          如果在微信里预览失败，通常是内核限制/性能不足。直接打开原文件一般能看。
         </div>
       </div>
     </div>
@@ -118,134 +152,87 @@
     <script>
       (function () {
         var pdfUrl = "catalog.pdf";
-        var toolbar = document.getElementById("toolbar");
         var viewer = document.getElementById("viewer");
         var fallback = document.getElementById("fallback");
         var fallbackText = document.getElementById("fallbackText");
-        var canvas = document.getElementById("canvas");
-        var statusEl = document.getElementById("status");
-        var prevBtn = document.getElementById("prev");
-        var nextBtn = document.getElementById("next");
-        var zoomOutBtn = document.getElementById("zoomOut");
-        var zoomInBtn = document.getElementById("zoomIn");
+        var hint = document.getElementById("hint");
+        var loading = document.getElementById("loading");
+        var pagesEl = document.getElementById("pages");
         var openLink = document.getElementById("open");
 
         openLink.href = pdfUrl;
 
         function showFallback(message) {
-          toolbar.hidden = true;
-          viewer.hidden = true;
-          fallback.hidden = false;
+          viewer.classList.add("hidden");
+          fallback.classList.remove("hidden");
           if (fallbackText) {
             fallbackText.textContent = message || "当前环境不支持直接预览。";
           }
+          if (hint) hint.textContent = "无法预览";
+          if (loading) loading.classList.add("hidden");
         }
 
-        function showViewer() {
-          toolbar.hidden = false;
-          viewer.hidden = false;
-          fallback.hidden = true;
-        }
-
-        var pdfDoc = null;
-        var pageNum = 1;
-        var scale = 1.2;
-        var rendering = false;
-        var pendingPage = null;
-        var renderStarted = false;
         var watchdogTimer = null;
         var loadingTask = null;
-
-        function setStatus(text) {
-          statusEl.textContent = text;
-        }
-
-        function updateButtons() {
-          prevBtn.disabled = !pdfDoc || pageNum <= 1 || rendering;
-          nextBtn.disabled = !pdfDoc || pageNum >= pdfDoc.numPages || rendering;
-          zoomOutBtn.disabled = !pdfDoc || rendering || scale <= 0.6;
-          zoomInBtn.disabled = !pdfDoc || rendering || scale >= 3.0;
-        }
-
-        function queueRenderPage(num) {
-          if (rendering) {
-            pendingPage = num;
-            return;
-          }
-          renderPage(num);
-        }
-
-        function renderPage(num) {
-          rendering = true;
-          pendingPage = null;
-          updateButtons();
-          setStatus("第 " + num + " / " + pdfDoc.numPages + " 页");
-
-          pdfDoc
-            .getPage(num)
-            .then(function (page) {
-              var viewport = page.getViewport({ scale: scale });
-              var context = canvas.getContext("2d");
-              canvas.width = Math.floor(viewport.width);
-              canvas.height = Math.floor(viewport.height);
-
-              var renderTask = page.render({
-                canvasContext: context,
-                viewport: viewport,
-              });
-
-              return renderTask.promise;
-            })
-            .then(function () {
-              rendering = false;
-              updateButtons();
-              if (pendingPage !== null) {
-                var next = pendingPage;
-                pendingPage = null;
-                renderPage(next);
-              }
-            })
-            .catch(function () {
-              showFallback();
-            });
-        }
-
-        function onPrevPage() {
-          if (!pdfDoc || pageNum <= 1) return;
-          pageNum -= 1;
-          queueRenderPage(pageNum);
-        }
-
-        function onNextPage() {
-          if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
-          pageNum += 1;
-          queueRenderPage(pageNum);
-        }
-
-        function zoom(delta) {
-          if (!pdfDoc) return;
-          var nextScale = Math.max(0.6, Math.min(3.0, scale + delta));
-          if (nextScale === scale) return;
-          scale = nextScale;
-          queueRenderPage(pageNum);
-        }
-
-        prevBtn.addEventListener("click", onPrevPage);
-        nextBtn.addEventListener("click", onNextPage);
-        zoomOutBtn.addEventListener("click", function () {
-          zoom(-0.2);
-        });
-        zoomInBtn.addEventListener("click", function () {
-          zoom(0.2);
-        });
 
         function startWatchdog() {
           if (watchdogTimer) return;
           watchdogTimer = setTimeout(function () {
-            if (!renderStarted) {
-              showFallback("预览加载较慢（文件较大/微信内核限制），建议直接打开原文件。");
-            }
-          }, 20000);
+            showFallback("预览加载超时（文件较大/微信内核限制），建议直接打开原文件。");
+          }, 25000);
+        }
+
+        function setLoadingText(text) {
+          if (hint) hint.textContent = text;
+          if (loading) loading.textContent = text;
+        }
+
+        function clearPages() {
+          while (pagesEl.firstChild) pagesEl.removeChild(pagesEl.firstChild);
+        }
+
+        function renderAllPages(doc) {
+          clearPages();
+          if (loading) loading.classList.remove("hidden");
+
+          var targetCssWidth = Math.min(980, Math.max(320, viewer.clientWidth - 20));
+          var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+          var chain = Promise.resolve();
+          for (var pageNum = 1; pageNum <= doc.numPages; pageNum += 1) {
+            (function (n) {
+              chain = chain.then(function () {
+                return doc.getPage(n).then(function (page) {
+                  var viewport = page.getViewport({ scale: 1 });
+                  var cssScale = targetCssWidth / viewport.width;
+                  var scaledViewport = page.getViewport({ scale: cssScale });
+
+                  var canvas = document.createElement("canvas");
+                  canvas.className = "page";
+                  canvas.style.width = Math.floor(scaledViewport.width) + "px";
+                  canvas.style.height = Math.floor(scaledViewport.height) + "px";
+                  canvas.width = Math.floor(scaledViewport.width * dpr);
+                  canvas.height = Math.floor(scaledViewport.height * dpr);
+                  pagesEl.appendChild(canvas);
+
+                  var ctx = canvas.getContext("2d");
+                  var transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null;
+
+                  setLoadingText("正在渲染… " + n + " / " + doc.numPages);
+                  return page.render({
+                    canvasContext: ctx,
+                    viewport: scaledViewport,
+                    transform: transform,
+                  }).promise;
+                });
+              });
+            })(pageNum);
+          }
+
+          return chain.then(function () {
+            if (loading) loading.classList.add("hidden");
+            setLoadingText("下滑查看");
+          });
         }
 
         function initWorker() {
@@ -256,30 +243,22 @@
             }
 
             startWatchdog();
-            showViewer();
-            updateButtons();
-
             window.pdfjsLib.GlobalWorkerOptions.workerSrc =
               "vendor/pdfjs/pdf.worker.min.js";
 
-            setStatus("正在加载…");
-
+            setLoadingText("正在加载…");
             loadingTask = window.pdfjsLib.getDocument({ url: pdfUrl });
             loadingTask.onProgress = function (p) {
               if (!p || !p.total) return;
               var percent = Math.floor((p.loaded / p.total) * 100);
               if (percent < 0) percent = 0;
               if (percent > 99) percent = 99;
-              setStatus("正在加载… " + percent + "%");
+              setLoadingText("正在加载… " + percent + "%");
             };
 
             loadingTask.promise
               .then(function (doc) {
-                pdfDoc = doc;
-                pageNum = 1;
-                setStatus("第 " + pageNum + " / " + pdfDoc.numPages + " 页");
-                renderStarted = true;
-                renderPage(pageNum);
+                return renderAllPages(doc);
               })
               .catch(function () {
                 initNoWorker();
@@ -291,16 +270,12 @@
 
         function initNoWorker() {
           try {
-            setStatus("正在加载（兼容模式）…");
+            setLoadingText("正在加载（兼容模式）…");
 
             window.pdfjsLib
               .getDocument({ url: pdfUrl, disableWorker: true })
               .promise.then(function (doc) {
-                pdfDoc = doc;
-                pageNum = 1;
-                setStatus("第 " + pageNum + " / " + pdfDoc.numPages + " 页");
-                renderStarted = true;
-                renderPage(pageNum);
+                return renderAllPages(doc);
               })
               .catch(function () {
                 showFallback("预览加载失败（微信内核限制），建议直接打开原文件。");
