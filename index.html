@@ -174,11 +174,14 @@
 
         var watchdogTimer = null;
         var loadingTask = null;
+        var renderStarted = false;
 
         function startWatchdog() {
           if (watchdogTimer) return;
           watchdogTimer = setTimeout(function () {
-            showFallback("预览加载超时（文件较大/微信内核限制），建议直接打开原文件。");
+            if (!renderStarted) {
+              showFallback("预览加载超时（文件较大/微信内核限制），建议直接打开原文件。");
+            }
           }, 25000);
         }
 
@@ -192,6 +195,7 @@
         }
 
         function renderAllPages(doc) {
+          renderStarted = true;
           clearPages();
           if (loading) loading.classList.remove("hidden");
 
