@@ -159,7 +159,7 @@
             if (!renderStarted) {
               showFallback("预览加载超时（文件较大/微信内核限制），建议直接打开原文件。");
             }
-          }, 25000);
+          }, 45000);
         }
 
         function setLoadingText(text) {
@@ -170,13 +170,13 @@
           while (pagesEl.firstChild) pagesEl.removeChild(pagesEl.firstChild);
         }
 
-        function renderAllPages(doc) {
+        function renderAllPagesEager(doc) {
           renderStarted = true;
           clearPages();
           if (loading) loading.classList.remove("hidden");
 
           var targetCssWidth = Math.min(980, Math.max(320, viewer.clientWidth - 20));
-          var dpr = Math.min(window.devicePixelRatio || 1, 2);
+          var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
           var chain = Promise.resolve();
           for (var pageNum = 1; pageNum <= doc.numPages; pageNum += 1) {
@@ -215,6 +215,154 @@
           });
         }
 
+        function renderAllPagesLazy(doc) {
+          renderStarted = true;
+          clearPages();
+          if (loading) loading.classList.remove("hidden");
+
+          var targetCssWidth = Math.min(980, Math.max(320, viewer.clientWidth - 20));
+          var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+
+          var totalPages = doc.numPages;
+          var renderedCount = 0;
+          var renderedMap = Object.create(null);
+          var queuedMap = Object.create(null);
+          var renderQueue = [];
+          var rendering = false;
+          var pageRatio = 1.414;
+          var placeholderHeight = Math.floor(targetCssWidth * pageRatio);
+
+          setLoadingText("正在渲染… 0 / " + totalPages);
+
+          function updateLoadingText() {
+            if (!loading) return;
+            if (renderedCount >= totalPages) {
+              loading.classList.add("hidden");
+              return;
+            }
+            setLoadingText("边看边加载… " + renderedCount + " / " + totalPages);
+          }
+
+          function updatePlaceholdersHeight(height) {
+            placeholderHeight = height;
+            var children = pagesEl.children;
+            for (var i = 0; i < children.length; i += 1) {
+              var el = children[i];
+              if (el && el.style && !el.getAttribute("data-rendered")) {
+                el.style.height = placeholderHeight + "px";
+              }
+            }
+          }
+
+          function createCanvas(pageNum) {
+            var canvas = document.createElement("canvas");
+            canvas.className = "page";
+            canvas.setAttribute("data-page-number", String(pageNum));
+            canvas.style.width = targetCssWidth + "px";
+            canvas.style.height = placeholderHeight + "px";
+            return canvas;
+          }
+
+          function renderPageToCanvas(pageNum, canvas) {
+            return doc.getPage(pageNum).then(function (page) {
+              var viewport = page.getViewport({ scale: 1 });
+              if (viewport && viewport.width && viewport.height) {
+                var nextRatio = viewport.height / viewport.width;
+                if (nextRatio > 0.1 && nextRatio < 10 && Math.abs(nextRatio - pageRatio) > 0.01) {
+                  pageRatio = nextRatio;
+                  updatePlaceholdersHeight(Math.floor(targetCssWidth * pageRatio));
+                }
+              }
+
+              var cssScale = targetCssWidth / viewport.width;
+              var scaledViewport = page.getViewport({ scale: cssScale });
+
+              canvas.style.width = Math.floor(scaledViewport.width) + "px";
+              canvas.style.height = Math.floor(scaledViewport.height) + "px";
+              canvas.width = Math.floor(scaledViewport.width * dpr);
+              canvas.height = Math.floor(scaledViewport.height * dpr);
+
+              var ctx = canvas.getContext("2d");
+              var transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null;
+
+              return page.render({
+                canvasContext: ctx,
+                viewport: scaledViewport,
+                transform: transform,
+              }).promise;
+            });
+          }
+
+          function enqueue(canvas) {
+            var pageNum = parseInt(canvas.getAttribute("data-page-number") || "0", 10);
+            if (!pageNum) return;
+            if (renderedMap[pageNum]) return;
+            if (queuedMap[pageNum]) return;
+            queuedMap[pageNum] = true;
+            renderQueue.push(canvas);
+          }
+
+          function processQueue() {
+            if (rendering) return;
+            if (!renderQueue.length) return;
+
+            var canvas = renderQueue.shift();
+            if (!canvas) return;
+
+            var pageNum = parseInt(canvas.getAttribute("data-page-number") || "0", 10);
+            if (!pageNum) return;
+            if (renderedMap[pageNum]) return;
+
+            rendering = true;
+
+            renderPageToCanvas(pageNum, canvas)
+              .then(function () {
+                renderedMap[pageNum] = true;
+                canvas.setAttribute("data-rendered", "1");
+                renderedCount += 1;
+                updateLoadingText();
+              })
+              .catch(function () {
+                showFallback("预览加载失败，建议直接打开原文件。");
+              })
+              .then(function () {
+                rendering = false;
+                processQueue();
+              });
+          }
+
+          for (var n = 1; n <= totalPages; n += 1) {
+            pagesEl.appendChild(createCanvas(n));
+          }
+
+          if (!("IntersectionObserver" in window)) {
+            return renderAllPagesEager(doc);
+          }
+
+          var observer = new IntersectionObserver(
+            function (entries) {
+              for (var i = 0; i < entries.length; i += 1) {
+                var entry = entries[i];
+                if (entry && entry.isIntersecting && entry.target) {
+                  observer.unobserve(entry.target);
+                  enqueue(entry.target);
+                }
+              }
+              processQueue();
+            },
+            { root: viewer, rootMargin: "900px 0px", threshold: 0.01 }
+          );
+
+          var children = pagesEl.children;
+          for (var i2 = 0; i2 < children.length; i2 += 1) {
+            observer.observe(children[i2]);
+          }
+
+          if (children[0]) enqueue(children[0]);
+          if (children[1]) enqueue(children[1]);
+          processQueue();
+        }
+
         function loadPdfJs(callback) {
           var script = document.createElement("script");
           script.src = "vendor/pdfjs/pdf.min.js";
@@ -251,7 +399,7 @@
 
             loadingTask.promise
               .then(function (doc) {
-                return renderAllPages(doc);
+                return renderAllPagesLazy(doc);
               })
               .catch(function () {
                 initNoWorker();
@@ -268,7 +416,7 @@
             window.pdfjsLib
               .getDocument({ url: pdfUrl, disableWorker: true })
               .promise.then(function (doc) {
-                return renderAllPages(doc);
+                return renderAllPagesLazy(doc);
               })
               .catch(function () {
                 showFallback("预览加载失败（微信内核限制），建议直接打开原文件。");
