@@ -10,10 +10,57 @@
         height: 100%;
         margin: 0;
       }
-      .frame {
-        width: 100%;
+      .app {
         height: 100%;
-        border: 0;
+        display: flex;
+        flex-direction: column;
+        background: #f6f7f9;
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 12px;
+        background: #ffffff;
+        border-bottom: 1px solid #e6e8eb;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+          Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+      .toolbar button,
+      .toolbar a {
+        appearance: none;
+        border: 1px solid #d8dce2;
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 14px;
+        color: #111827;
+        text-decoration: none;
+        line-height: 1;
+      }
+      .toolbar button:disabled {
+        opacity: 0.5;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .status {
+        font-size: 13px;
+        color: #4b5563;
+      }
+      .viewer {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 12px;
+      }
+      canvas {
+        background: #ffffff;
+        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
+        max-width: 100%;
+        height: auto;
       }
       .fallback {
         padding: 16px;
@@ -28,9 +75,25 @@
     </style>
   </head>
   <body>
-    <object class="frame" data="Invitation%20Letter.pdf" type="application/pdf">
-      <div class="fallback">
-        <div>当前环境不支持内嵌预览 PDF。</div>
+    <div class="app">
+      <div class="toolbar" id="toolbar" hidden>
+        <button id="prev" type="button">上一页</button>
+        <button id="next" type="button">下一页</button>
+        <button id="zoomOut" type="button">缩小</button>
+        <button id="zoomIn" type="button">放大</button>
+        <span class="status" id="status">加载中…</span>
+        <div class="spacer"></div>
+        <a id="open" href="Invitation%20Letter.pdf" target="_blank" rel="noreferrer"
+          >打开原文件</a
+        >
+      </div>
+
+      <div class="viewer" id="viewer" hidden>
+        <canvas id="canvas"></canvas>
+      </div>
+
+      <div class="fallback" id="fallback" hidden>
+        <div>当前环境不支持直接预览。</div>
         <div>
           请点击打开：
           <a href="Invitation%20Letter.pdf" target="_blank" rel="noreferrer"
@@ -38,6 +101,145 @@
           >
         </div>
       </div>
-    </object>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+      (function () {
+        var pdfUrl = "Invitation%20Letter.pdf";
+        var toolbar = document.getElementById("toolbar");
+        var viewer = document.getElementById("viewer");
+        var fallback = document.getElementById("fallback");
+        var canvas = document.getElementById("canvas");
+        var statusEl = document.getElementById("status");
+        var prevBtn = document.getElementById("prev");
+        var nextBtn = document.getElementById("next");
+        var zoomOutBtn = document.getElementById("zoomOut");
+        var zoomInBtn = document.getElementById("zoomIn");
+        var openLink = document.getElementById("open");
+
+        openLink.href = pdfUrl;
+
+        function showFallback() {
+          toolbar.hidden = true;
+          viewer.hidden = true;
+          fallback.hidden = false;
+        }
+
+        if (!window.pdfjsLib) {
+          showFallback();
+          return;
+        }
+
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+
+        var pdfDoc = null;
+        var pageNum = 1;
+        var scale = 1.2;
+        var rendering = false;
+        var pendingPage = null;
+
+        function setStatus(text) {
+          statusEl.textContent = text;
+        }
+
+        function updateButtons() {
+          prevBtn.disabled = !pdfDoc || pageNum <= 1 || rendering;
+          nextBtn.disabled = !pdfDoc || pageNum >= pdfDoc.numPages || rendering;
+          zoomOutBtn.disabled = !pdfDoc || rendering || scale <= 0.6;
+          zoomInBtn.disabled = !pdfDoc || rendering || scale >= 3.0;
+        }
+
+        function queueRenderPage(num) {
+          if (rendering) {
+            pendingPage = num;
+            return;
+          }
+          renderPage(num);
+        }
+
+        function renderPage(num) {
+          rendering = true;
+          pendingPage = null;
+          updateButtons();
+          setStatus("第 " + num + " / " + pdfDoc.numPages + " 页");
+
+          pdfDoc
+            .getPage(num)
+            .then(function (page) {
+              var viewport = page.getViewport({ scale: scale });
+              var context = canvas.getContext("2d");
+              canvas.width = Math.floor(viewport.width);
+              canvas.height = Math.floor(viewport.height);
+
+              var renderTask = page.render({
+                canvasContext: context,
+                viewport: viewport,
+              });
+
+              return renderTask.promise;
+            })
+            .then(function () {
+              rendering = false;
+              updateButtons();
+              if (pendingPage !== null) {
+                var next = pendingPage;
+                pendingPage = null;
+                renderPage(next);
+              }
+            })
+            .catch(function () {
+              showFallback();
+            });
+        }
+
+        function onPrevPage() {
+          if (!pdfDoc || pageNum <= 1) return;
+          pageNum -= 1;
+          queueRenderPage(pageNum);
+        }
+
+        function onNextPage() {
+          if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
+          pageNum += 1;
+          queueRenderPage(pageNum);
+        }
+
+        function zoom(delta) {
+          if (!pdfDoc) return;
+          var nextScale = Math.max(0.6, Math.min(3.0, scale + delta));
+          if (nextScale === scale) return;
+          scale = nextScale;
+          queueRenderPage(pageNum);
+        }
+
+        prevBtn.addEventListener("click", onPrevPage);
+        nextBtn.addEventListener("click", onNextPage);
+        zoomOutBtn.addEventListener("click", function () {
+          zoom(-0.2);
+        });
+        zoomInBtn.addEventListener("click", function () {
+          zoom(0.2);
+        });
+
+        toolbar.hidden = false;
+        viewer.hidden = false;
+        fallback.hidden = true;
+        updateButtons();
+
+        window.pdfjsLib
+          .getDocument({ url: pdfUrl })
+          .promise.then(function (doc) {
+            pdfDoc = doc;
+            pageNum = 1;
+            setStatus("第 " + pageNum + " / " + pdfDoc.numPages + " 页");
+            renderPage(pageNum);
+          })
+          .catch(function () {
+            showFallback();
+          });
+      })();
+    </script>
   </body>
 </html>
