@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>AEROSEEK</title>
     <meta name="description" content="AEROSEEK" />
     <style>
@@ -24,12 +24,19 @@
       body {
         height: 100%;
         margin: 0;
+        overflow: hidden;
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
           "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
         color: var(--text);
         background: radial-gradient(1100px 760px at 10% 12%, #1c2230 0%, rgba(28, 34, 48, 0) 55%),
           radial-gradient(900px 650px at 78% 22%, #1a1f2b 0%, rgba(26, 31, 43, 0) 55%),
           linear-gradient(180deg, var(--bg1), var(--bg0));
+      }
+
+      body {
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
       }
 
       a {
@@ -55,7 +62,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 12px 0;
+        padding: calc(10px + env(safe-area-inset-top)) 0 10px;
       }
 
       .leftGroup {
@@ -84,10 +91,6 @@
         letter-spacing: 0.6px;
       }
 
-      .hero {
-        padding: 44px 0 18px;
-      }
-
       h1 {
         margin: 0;
         font-size: clamp(24px, 3.5vw, 38px);
@@ -102,38 +105,48 @@
         max-width: 58ch;
       }
 
-      .grid {
-        margin-top: 18px;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
+      .main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        padding: 14px 0 calc(14px + env(safe-area-inset-bottom));
+        min-height: 0;
       }
 
-      .card {
-        padding: 14px;
+      .panel {
+        width: 100%;
         border: 1px solid var(--border);
-        background: var(--card);
-        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 18px;
+        padding: 16px;
       }
 
-      .cardTitle {
-        font-weight: 650;
-        font-size: 14px;
-        margin-bottom: 6px;
-        color: rgba(255, 255, 255, 0.9);
+      .features {
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
       }
 
-      .cardText {
-        color: var(--muted);
+      .pill {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.05);
         font-size: 13px;
-        line-height: 1.6;
+        color: var(--muted);
       }
 
-      .download {
-        padding: 18px 0 54px;
+      .pill b {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 650;
       }
 
       .downloadBar {
+        margin-top: 16px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -177,17 +190,13 @@
         background: rgba(207, 211, 220, 0.16);
       }
 
-      .footer {
-        padding: 16px 0 26px;
-        color: rgba(255, 255, 255, 0.5);
+      .legal {
+        margin-top: 12px;
+        color: rgba(255, 255, 255, 0.46);
         font-size: 12px;
-        border-top: 1px solid var(--border);
       }
 
       @media (max-width: 860px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
         .downloadBar {
           flex-direction: column;
           align-items: stretch;
@@ -208,30 +217,18 @@
       </div>
     </header>
 
-    <main class="container">
-      <section class="hero">
+    <main class="container main">
+      <section class="panel">
         <h1 data-i18n="heroTitle">低空安全与反无人机</h1>
         <div class="sub" data-i18n="heroSub">
           面向园区、场馆与重点区域的低空安全能力建设。
         </div>
 
-        <div class="grid">
-          <div class="card">
-            <div class="cardTitle" data-i18n="c1t">探测</div>
-            <div class="cardText" data-i18n="c1d">发现并跟踪可疑目标。</div>
-          </div>
-          <div class="card">
-            <div class="cardTitle" data-i18n="c2t">识别</div>
-            <div class="cardText" data-i18n="c2d">分类研判，降低误报。</div>
-          </div>
-          <div class="card">
-            <div class="cardTitle" data-i18n="c3t">处置</div>
-            <div class="cardText" data-i18n="c3d">策略联动，形成闭环。</div>
-          </div>
+        <div class="features">
+          <div class="pill"><b data-i18n="c1t">探测</b><span data-i18n="c1d">发现并跟踪可疑目标。</span></div>
+          <div class="pill"><b data-i18n="c2t">识别</b><span data-i18n="c2d">分类研判，降低误报。</span></div>
+          <div class="pill"><b data-i18n="c3t">处置</b><span data-i18n="c3d">策略联动，形成闭环。</span></div>
         </div>
-      </section>
-
-      <section class="download">
         <div class="downloadBar">
           <div class="downloadMeta">
             <div class="downloadTitle" data-i18n="dlTitle">产品资料（PDF）</div>
@@ -241,12 +238,9 @@
             >打开 PDF</a
           >
         </div>
+        <div class="legal">© AEROSEEK</div>
       </section>
     </main>
-
-    <footer class="footer">
-      <div class="container">© AEROSEEK</div>
-    </footer>
 
     <script>
       (function () {
