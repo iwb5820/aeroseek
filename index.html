@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PDF 预览</title>
+    <title>AEROSEEK</title>
     <style>
       html,
       body {
@@ -15,34 +15,6 @@
         display: flex;
         flex-direction: column;
         background: #f6f7f9;
-      }
-      .topbar {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        padding: 10px 12px;
-        background: #ffffff;
-        border-bottom: 1px solid #e6e8eb;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-          Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      }
-      .topbar a {
-        appearance: none;
-        border: 1px solid #d8dce2;
-        background: #fff;
-        border-radius: 8px;
-        padding: 8px 10px;
-        font-size: 14px;
-        color: #111827;
-        text-decoration: none;
-        line-height: 1;
-      }
-      .spacer {
-        flex: 1;
-      }
-      .hint {
-        font-size: 13px;
-        color: #4b5563;
       }
       .viewer {
         flex: 1;
@@ -114,12 +86,6 @@
   </head>
   <body>
     <div class="app">
-      <div class="topbar">
-        <div class="hint" id="hint">正在加载…</div>
-        <div class="spacer"></div>
-        <a id="open" href="catalog.pdf" target="_blank" rel="noreferrer">打开原文件</a>
-      </div>
-
       <div class="viewer" id="viewer">
         <div class="loading" id="loading">正在加载…</div>
         <div id="pages"></div>
@@ -128,7 +94,7 @@
       <div class="fallback hidden" id="fallback">
         <div id="fallbackText">当前环境无法预览，请打开原文件查看。</div>
         <div class="btnLink">
-          <a href="catalog.pdf" target="_blank" rel="noreferrer">打开 catalog.pdf</a>
+          <a id="open" href="catalog.pdf" target="_blank" rel="noreferrer">打开原文件</a>
         </div>
         <div class="notice">
           如果在微信里预览失败，通常是内核限制/性能不足。直接打开原文件一般能看。
@@ -148,19 +114,31 @@
         }
       })();
     </script>
-    <script src="vendor/pdfjs/pdf.min.js"></script>
     <script>
       (function () {
         var pdfUrl = "catalog.pdf";
         var viewer = document.getElementById("viewer");
         var fallback = document.getElementById("fallback");
         var fallbackText = document.getElementById("fallbackText");
-        var hint = document.getElementById("hint");
         var loading = document.getElementById("loading");
         var pagesEl = document.getElementById("pages");
         var openLink = document.getElementById("open");
 
-        openLink.href = pdfUrl;
+        if (openLink) openLink.href = pdfUrl;
+
+        function isWeChat() {
+          var ua = navigator.userAgent || "";
+          return /MicroMessenger/i.test(ua);
+        }
+
+        function supportsModernJs() {
+          try {
+            new Function("()=>{}");
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
 
         function showFallback(message) {
           viewer.classList.add("hidden");
@@ -168,7 +146,6 @@
           if (fallbackText) {
             fallbackText.textContent = message || "当前环境不支持直接预览。";
           }
-          if (hint) hint.textContent = "无法预览";
           if (loading) loading.classList.add("hidden");
         }
 
@@ -186,7 +163,6 @@
         }
 
         function setLoadingText(text) {
-          if (hint) hint.textContent = text;
           if (loading) loading.textContent = text;
         }
 
@@ -237,6 +213,19 @@
             if (loading) loading.classList.add("hidden");
             setLoadingText("下滑查看");
           });
+        }
+
+        function loadPdfJs(callback) {
+          var script = document.createElement("script");
+          script.src = "vendor/pdfjs/pdf.min.js";
+          script.async = true;
+          script.onload = function () {
+            callback();
+          };
+          script.onerror = function () {
+            showFallback("预览组件加载失败（pdf.js 加载失败），建议直接打开原文件。");
+          };
+          document.head.appendChild(script);
         }
 
         function initWorker() {
@@ -297,7 +286,27 @@
           showFallback("预览运行出错，建议直接打开原文件。");
         });
 
-        initWorker();
+        if (isWeChat()) {
+          if (openLink) openLink.target = "_self";
+          setLoadingText("检测到微信，正在打开原文件…");
+          showFallback("微信内置浏览器对 pdf.js 兼容性不稳定，建议直接打开原文件查看。");
+          setTimeout(function () {
+            try {
+              window.location.href = pdfUrl;
+            } catch (e) {}
+          }, 200);
+          return;
+        }
+
+        if (!supportsModernJs()) {
+          openLink.target = "_self";
+          showFallback("当前浏览器版本较低，建议直接打开原文件查看。");
+          return;
+        }
+
+        loadPdfJs(function () {
+          initWorker();
+        });
       })();
     </script>
   </body>
