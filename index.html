@@ -154,6 +154,7 @@
         var pendingPage = null;
         var renderStarted = false;
         var watchdogTimer = null;
+        var loadingTask = null;
 
         function setStatus(text) {
           statusEl.textContent = text;
@@ -242,12 +243,12 @@
           if (watchdogTimer) return;
           watchdogTimer = setTimeout(function () {
             if (!renderStarted) {
-              showFallback("预览加载超时（微信内核兼容性/网络限制），建议直接打开原文件。");
+              showFallback("预览加载较慢（文件较大/微信内核限制），建议直接打开原文件。");
             }
-          }, 6000);
+          }, 20000);
         }
 
-        function init() {
+        function initWorker() {
           try {
             if (!window.pdfjsLib) {
               showFallback("预览组件加载失败（pdf.js 未加载）。");
@@ -257,6 +258,40 @@
             startWatchdog();
             showViewer();
             updateButtons();
+
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+              "vendor/pdfjs/pdf.worker.min.js";
+
+            setStatus("正在加载…");
+
+            loadingTask = window.pdfjsLib.getDocument({ url: pdfUrl });
+            loadingTask.onProgress = function (p) {
+              if (!p || !p.total) return;
+              var percent = Math.floor((p.loaded / p.total) * 100);
+              if (percent < 0) percent = 0;
+              if (percent > 99) percent = 99;
+              setStatus("正在加载… " + percent + "%");
+            };
+
+            loadingTask.promise
+              .then(function (doc) {
+                pdfDoc = doc;
+                pageNum = 1;
+                setStatus("第 " + pageNum + " / " + pdfDoc.numPages + " 页");
+                renderStarted = true;
+                renderPage(pageNum);
+              })
+              .catch(function () {
+                initNoWorker();
+              });
+          } catch (e) {
+            initNoWorker();
+          }
+        }
+
+        function initNoWorker() {
+          try {
+            setStatus("正在加载（兼容模式）…");
 
             window.pdfjsLib
               .getDocument({ url: pdfUrl, disableWorker: true })
@@ -268,10 +303,10 @@
                 renderPage(pageNum);
               })
               .catch(function () {
-                showFallback("预览加载失败，建议直接打开原文件。");
+                showFallback("预览加载失败（微信内核限制），建议直接打开原文件。");
               });
           } catch (e) {
-            showFallback("预览初始化失败，建议直接打开原文件。");
+            showFallback("预览初始化失败（微信内核限制），建议直接打开原文件。");
           }
         }
 
@@ -283,7 +318,7 @@
           showFallback("预览运行出错，建议直接打开原文件。");
         });
 
-        init();
+        initWorker();
       })();
     </script>
   </body>
