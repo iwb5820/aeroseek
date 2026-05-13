@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PDF 预览</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      .frame {
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+      .fallback {
+        padding: 16px;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+          Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+          sans-serif;
+        line-height: 1.5;
+      }
+      a {
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <object class="frame" data="Invitation%20Letter.pdf" type="application/pdf">
+      <div class="fallback">
+        <div>当前环境不支持内嵌预览 PDF。</div>
+        <div>
+          请点击打开：
+          <a href="Invitation%20Letter.pdf" target="_blank" rel="noreferrer"
+            >Invitation Letter.pdf</a
+          >
+        </div>
+      </div>
+    </object>
+  </body>
+</html>
