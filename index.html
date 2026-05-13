@@ -380,18 +380,18 @@
               showFallback();
               return;
             }
-            startWatchdog();
             window.pdfjsLib.GlobalWorkerOptions.workerSrc =
               "vendor/pdfjs/pdf.worker.min.js";
+            setLoadingText("正在加载…");
             loadingTask = window.pdfjsLib.getDocument({
               url: pdfUrl,
               disableAutoFetch: true,
               rangeChunkSize: 65536,
             });
-            setLoadingText("正在加载…");
-            loadingTask = window.pdfjsLib.getDocument({ url: pdfUrl });
             loadingTask.onProgress = function (p) {
               if (!p || !p.total) return;
+              var percent = Math.floor((p.loaded / p.total) * 100);
+              if (percent < 0) percent = 0;
               if (percent > 99) percent = 99;
               setLoadingText("正在加载… " + percent + "%");
             };
@@ -411,18 +411,22 @@
         function initNoWorker() {
           try {
             setLoadingText("正在加载（兼容模式）…");
-
+            if (!window.pdfjsLib) {
+              showFallback();
+              return;
+            }
+            window.pdfjsLib
               .getDocument({
                 url: pdfUrl,
                 disableWorker: true,
                 disableAutoFetch: true,
                 rangeChunkSize: 65536,
               })
-              .getDocument({ url: pdfUrl, disableWorker: true })
               .promise.then(function (doc) {
                 return renderAllPagesLazy(doc);
               })
               .catch(function () {
+                showFallback();
               });
           } catch (e) {
             showFallback();
