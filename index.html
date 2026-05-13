@@ -4,459 +4,313 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AEROSEEK</title>
+    <meta name="description" content="AEROSEEK 低空安全与反无人机解决方案。" />
     <style>
+      :root {
+        --bg: #0b1020;
+        --card: rgba(255, 255, 255, 0.08);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.7);
+        --brand: #6ee7ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       html,
       body {
         height: 100%;
         margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        color: var(--text);
+        background: radial-gradient(1200px 800px at 15% 10%, #16306a 0%, rgba(22, 48, 106, 0) 55%),
+          radial-gradient(900px 700px at 80% 30%, #0b6a7a 0%, rgba(11, 106, 122, 0) 55%),
+          var(--bg);
       }
-      .app {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        background: #f6f7f9;
-      }
-      .viewer {
-        flex: 1;
-        overflow: auto;
-        padding: 12px 10px 18px;
-      }
-      .downloadbar {
-        padding: 12px 10px 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-          Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      }
-      .downloadbar a {
-        display: inline-block;
-        appearance: none;
-        border: 1px solid #d8dce2;
-        background: #fff;
-        border-radius: 8px;
-        padding: 8px 10px;
-        font-size: 14px;
-        color: #111827;
+
+      a {
+        color: inherit;
         text-decoration: none;
-        line-height: 1;
       }
-      .page {
-        display: block;
-        margin: 0 auto 12px;
-        max-width: 100%;
-        background: #ffffff;
-        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
-        border-radius: 6px;
+
+      .container {
+        width: min(1100px, calc(100% - 32px));
+        margin: 0 auto;
       }
-      canvas.page {
-        height: auto;
-        width: 100%;
-        max-width: 980px;
+
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        background: rgba(11, 16, 32, 0.72);
+        border-bottom: 1px solid var(--border);
       }
-      .fallback {
-        padding: 16px;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-          Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-          sans-serif;
-        line-height: 1.5;
-      }
-      .fallback a {
-        word-break: break-all;
-      }
-      .loading {
+
+      .headerInner {
         display: flex;
-        justify-content: center;
-        padding: 18px 0 10px;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-          Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-          sans-serif;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+
+      .badge {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--brand);
+        box-shadow: 0 0 0 6px rgba(110, 231, 255, 0.12);
+      }
+
+      .nav {
+        display: flex;
+        gap: 16px;
         font-size: 14px;
-        color: #4b5563;
+        color: var(--muted);
       }
-      .hidden {
-        display: none;
+
+      .nav a:hover {
+        color: var(--text);
       }
-      .notice {
-        margin-top: 10px;
-        color: #6b7280;
-        font-size: 13px;
+
+      .hero {
+        padding: 52px 0 20px;
       }
-      .btnLink {
-        display: inline-block;
-        margin-top: 10px;
+
+      .heroGrid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 18px;
+        align-items: stretch;
       }
-      .btnLink a {
-        word-break: break-all;
+
+      .heroCard {
+        padding: 22px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        border-radius: 16px;
       }
-      .pageImg {
-        display: block;
-        margin: 0 auto 12px;
-        max-width: 980px;
-        width: 100%;
-        height: auto;
-        background: #ffffff;
-        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
-        border-radius: 6px;
+
+      h1 {
+        margin: 0;
+        font-size: clamp(26px, 3.6vw, 42px);
+        line-height: 1.15;
       }
-      canvas {
-        background: #ffffff;
+
+      .subtitle {
+        margin-top: 12px;
+        font-size: 15px;
+        line-height: 1.7;
+        color: var(--muted);
+      }
+
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .kpi {
+        padding: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+      }
+
+      .kpiLabel {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .kpiValue {
+        margin-top: 6px;
+        font-size: 16px;
+        font-weight: 650;
+      }
+
+      .cards {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .card {
+        padding: 16px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 14px;
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .cardTitle {
+        color: var(--text);
+        font-weight: 650;
+        margin-bottom: 6px;
+      }
+
+      .download {
+        padding: 26px 0 56px;
+      }
+
+      .downloadInner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+      }
+
+      .downloadText {
+        line-height: 1.6;
+      }
+
+      .downloadTitle {
+        font-weight: 650;
+      }
+
+      .downloadSub {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 6px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(110, 231, 255, 0.4);
+        background: rgba(110, 231, 255, 0.14);
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      .btn:hover {
+        background: rgba(110, 231, 255, 0.2);
+      }
+
+      .footer {
+        padding: 18px 0 28px;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 12px;
+        border-top: 1px solid var(--border);
+      }
+
+      @media (max-width: 860px) {
+        .heroGrid {
+          grid-template-columns: 1fr;
+        }
+        .cards {
+          grid-template-columns: 1fr;
+        }
+        .kpis {
+          grid-template-columns: 1fr;
+        }
+        .downloadInner {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .btn {
+          width: 100%;
+        }
+        .nav {
+          display: none;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="app">
-      <div class="downloadbar">
-        <a id="open" href="catalog.pdf" target="_blank" rel="noreferrer" download="catalog.pdf"
-          >下载 catalog.pdf</a
-        >
+    <header class="header">
+      <div class="container headerInner">
+        <div class="brand"><span class="badge"></span><span>AEROSEEK</span></div>
+        <nav class="nav">
+          <a href="#solutions">解决方案</a>
+          <a href="#download">资料下载</a>
+        </nav>
       </div>
-      <div class="viewer" id="viewer">
-        <div class="loading" id="loading">正在加载…</div>
-        <div id="pages"></div>
-      </div>
-    </div>
+    </header>
 
-    <script>
-      (function () {
-        if (typeof globalThis !== "undefined") return;
-        if (typeof window !== "undefined") {
-          window.globalThis = window;
-          return;
-        }
-        if (typeof self !== "undefined") {
-          self.globalThis = self;
-        }
-      })();
-    </script>
-    <script>
-      (function () {
-        var pdfUrl = "catalog.pdf";
-        var viewer = document.getElementById("viewer");
-        var loading = document.getElementById("loading");
-        var pagesEl = document.getElementById("pages");
-        var openLink = document.getElementById("open");
+    <main class="container">
+      <section class="hero" id="solutions">
+        <div class="heroGrid">
+          <div class="heroCard">
+            <h1>低空安全与反无人机解决方案</h1>
+            <div class="subtitle">
+              AEROSEEK 致力于提供面向园区、场馆、关键基础设施等场景的低空安全能力建设，
+              支持探测、识别、定位、处置与联动管理。
+            </div>
+            <div class="kpis">
+              <div class="kpi">
+                <div class="kpiLabel">应用场景</div>
+                <div class="kpiValue">园区 / 场馆 / 重要区域</div>
+              </div>
+              <div class="kpi">
+                <div class="kpiLabel">能力链路</div>
+                <div class="kpiValue">探测 · 识别 · 处置</div>
+              </div>
+              <div class="kpi">
+                <div class="kpiLabel">交付方式</div>
+                <div class="kpiValue">设备 + 平台 + 方案</div>
+              </div>
+            </div>
+          </div>
 
-        if (openLink) openLink.href = pdfUrl;
+          <div class="heroCard">
+            <div class="cardTitle">我们能做什么</div>
+            <div class="cards">
+              <div class="card">
+                <div class="cardTitle">低空监测</div>
+                多源融合监测，帮助快速发现可疑目标并持续跟踪。
+              </div>
+              <div class="card">
+                <div class="cardTitle">风险处置</div>
+                按策略分级处置，支持与安防系统联动，形成闭环管理。
+              </div>
+              <div class="card">
+                <div class="cardTitle">方案落地</div>
+                从现场评估到部署调试，提供交付与运维支持。
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        function isWeChat() {
-          var ua = navigator.userAgent || "";
-          return /MicroMessenger/i.test(ua);
-        }
+      <section class="download" id="download">
+        <div class="downloadInner">
+          <div class="downloadText">
+            <div class="downloadTitle">产品资料（PDF）</div>
+            <div class="downloadSub">点击按钮下载 catalog.pdf</div>
+          </div>
+          <a class="btn" href="catalog.pdf" download="AEROSEEK-catalog.pdf" rel="noreferrer"
+            >下载 PDF</a
+          >
+        </div>
+      </section>
+    </main>
 
-        function supportsModernJs() {
-          try {
-            new Function("()=>{}");
-            return true;
-          } catch (e) {
-            return false;
-          }
-        }
-
-        function showFallback() {
-          if (pagesEl) {
-            while (pagesEl.firstChild) pagesEl.removeChild(pagesEl.firstChild);
-          }
-          if (loading) loading.classList.add("hidden");
-        }
-
-        var loadingTask = null;
-        var renderStarted = false;
-
-        function setLoadingText(text) {
-          if (loading) loading.textContent = text;
-        }
-
-        function clearPages() {
-          while (pagesEl.firstChild) pagesEl.removeChild(pagesEl.firstChild);
-        }
-
-        function renderAllPagesEager(doc) {
-          renderStarted = true;
-          clearPages();
-          if (loading) loading.classList.remove("hidden");
-
-          var targetCssWidth = Math.min(980, Math.max(320, viewer.clientWidth - 20));
-          var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-
-          var chain = Promise.resolve();
-          for (var pageNum = 1; pageNum <= doc.numPages; pageNum += 1) {
-            (function (n) {
-              chain = chain.then(function () {
-                return doc.getPage(n).then(function (page) {
-                  var viewport = page.getViewport({ scale: 1 });
-                  var cssScale = targetCssWidth / viewport.width;
-                  var scaledViewport = page.getViewport({ scale: cssScale });
-
-                  var canvas = document.createElement("canvas");
-                  canvas.className = "page";
-                  canvas.style.width = Math.floor(scaledViewport.width) + "px";
-                  canvas.style.height = Math.floor(scaledViewport.height) + "px";
-                  canvas.width = Math.floor(scaledViewport.width * dpr);
-                  canvas.height = Math.floor(scaledViewport.height * dpr);
-                  pagesEl.appendChild(canvas);
-
-                  var ctx = canvas.getContext("2d");
-                  var transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null;
-
-                  setLoadingText("正在渲染… " + n + " / " + doc.numPages);
-                  return page.render({
-                    canvasContext: ctx,
-                    viewport: scaledViewport,
-                    transform: transform,
-                  }).promise;
-                });
-              });
-            })(pageNum);
-          }
-
-          return chain.then(function () {
-            if (loading) loading.classList.add("hidden");
-            setLoadingText("下滑查看");
-          });
-        }
-
-        function renderAllPagesLazy(doc) {
-          renderStarted = true;
-          clearPages();
-          if (loading) loading.classList.remove("hidden");
-
-          var targetCssWidth = Math.min(980, Math.max(320, viewer.clientWidth - 20));
-          var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-
-          var totalPages = doc.numPages;
-          var renderedCount = 0;
-          var renderedMap = Object.create(null);
-          var queuedMap = Object.create(null);
-          var renderQueue = [];
-          var rendering = false;
-          var pageRatio = 1.414;
-          var placeholderHeight = Math.floor(targetCssWidth * pageRatio);
-
-          setLoadingText("正在渲染… 0 / " + totalPages);
-
-          function updateLoadingText() {
-            if (!loading) return;
-            if (renderedCount >= totalPages) {
-              loading.classList.add("hidden");
-              return;
-            }
-            setLoadingText("边看边加载… " + renderedCount + " / " + totalPages);
-          }
-
-          function updatePlaceholdersHeight(height) {
-            placeholderHeight = height;
-            var children = pagesEl.children;
-            for (var i = 0; i < children.length; i += 1) {
-              var el = children[i];
-              if (el && el.style && !el.getAttribute("data-rendered")) {
-                el.style.height = placeholderHeight + "px";
-              }
-            }
-          }
-
-          function createCanvas(pageNum) {
-            var canvas = document.createElement("canvas");
-            canvas.className = "page";
-            canvas.setAttribute("data-page-number", String(pageNum));
-            canvas.style.width = targetCssWidth + "px";
-            canvas.style.height = placeholderHeight + "px";
-            return canvas;
-          }
-
-          function renderPageToCanvas(pageNum, canvas) {
-            return doc.getPage(pageNum).then(function (page) {
-              var viewport = page.getViewport({ scale: 1 });
-              if (viewport && viewport.width && viewport.height) {
-                var nextRatio = viewport.height / viewport.width;
-                if (nextRatio > 0.1 && nextRatio < 10 && Math.abs(nextRatio - pageRatio) > 0.01) {
-                  pageRatio = nextRatio;
-                  updatePlaceholdersHeight(Math.floor(targetCssWidth * pageRatio));
-                }
-              }
-
-              var cssScale = targetCssWidth / viewport.width;
-              var scaledViewport = page.getViewport({ scale: cssScale });
-
-              canvas.style.width = Math.floor(scaledViewport.width) + "px";
-              canvas.style.height = Math.floor(scaledViewport.height) + "px";
-              canvas.width = Math.floor(scaledViewport.width * dpr);
-              canvas.height = Math.floor(scaledViewport.height * dpr);
-
-              var ctx = canvas.getContext("2d");
-              var transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null;
-
-              return page.render({
-                canvasContext: ctx,
-                viewport: scaledViewport,
-                transform: transform,
-              }).promise;
-            });
-          }
-
-          function enqueue(canvas) {
-            var pageNum = parseInt(canvas.getAttribute("data-page-number") || "0", 10);
-            if (!pageNum) return;
-            if (renderedMap[pageNum]) return;
-            if (queuedMap[pageNum]) return;
-            queuedMap[pageNum] = true;
-            renderQueue.push(canvas);
-          }
-
-          function processQueue() {
-            if (rendering) return;
-            if (!renderQueue.length) return;
-
-            var canvas = renderQueue.shift();
-            if (!canvas) return;
-
-            var pageNum = parseInt(canvas.getAttribute("data-page-number") || "0", 10);
-            if (!pageNum) return;
-            if (renderedMap[pageNum]) return;
-
-            rendering = true;
-
-            renderPageToCanvas(pageNum, canvas)
-              .then(function () {
-                renderedMap[pageNum] = true;
-                canvas.setAttribute("data-rendered", "1");
-                renderedCount += 1;
-                updateLoadingText();
-              })
-              .catch(function () {
-                showFallback();
-              })
-              .then(function () {
-                rendering = false;
-                processQueue();
-              });
-          }
-
-          for (var n = 1; n <= totalPages; n += 1) {
-            pagesEl.appendChild(createCanvas(n));
-          }
-
-          if (!("IntersectionObserver" in window)) {
-            return renderAllPagesEager(doc);
-          }
-
-          var observer = new IntersectionObserver(
-            function (entries) {
-              for (var i = 0; i < entries.length; i += 1) {
-                var entry = entries[i];
-                if (entry && entry.isIntersecting && entry.target) {
-                  observer.unobserve(entry.target);
-                  enqueue(entry.target);
-                }
-              }
-              processQueue();
-            },
-            { root: viewer, rootMargin: "900px 0px", threshold: 0.01 }
-          );
-
-          var children = pagesEl.children;
-          for (var i2 = 0; i2 < children.length; i2 += 1) {
-            observer.observe(children[i2]);
-          }
-
-          if (children[0]) enqueue(children[0]);
-          if (children[1]) enqueue(children[1]);
-          processQueue();
-        }
-
-        function loadPdfJs(callback) {
-          var script = document.createElement("script");
-          script.src = "vendor/pdfjs/pdf.min.js";
-          script.async = true;
-          script.onload = function () {
-            callback();
-          };
-          script.onerror = function () {
-            showFallback();
-          };
-          document.head.appendChild(script);
-        }
-
-        function initWorker() {
-          try {
-            if (!window.pdfjsLib) {
-              showFallback();
-              return;
-            }
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-              "vendor/pdfjs/pdf.worker.min.js";
-            setLoadingText("正在加载…");
-            loadingTask = window.pdfjsLib.getDocument({
-              url: pdfUrl,
-              disableAutoFetch: true,
-              rangeChunkSize: 65536,
-            });
-            loadingTask.onProgress = function (p) {
-              if (!p || !p.total) return;
-              var percent = Math.floor((p.loaded / p.total) * 100);
-              if (percent < 0) percent = 0;
-              if (percent > 99) percent = 99;
-              setLoadingText("正在加载… " + percent + "%");
-            };
-
-            loadingTask.promise
-              .then(function (doc) {
-                return renderAllPagesLazy(doc);
-              })
-              .catch(function () {
-                initNoWorker();
-              });
-          } catch (e) {
-            initNoWorker();
-          }
-        }
-
-        function initNoWorker() {
-          try {
-            setLoadingText("正在加载（兼容模式）…");
-            if (!window.pdfjsLib) {
-              showFallback();
-              return;
-            }
-            window.pdfjsLib
-              .getDocument({
-                url: pdfUrl,
-                disableWorker: true,
-                disableAutoFetch: true,
-                rangeChunkSize: 65536,
-              })
-              .promise.then(function (doc) {
-                return renderAllPagesLazy(doc);
-              })
-              .catch(function () {
-                showFallback();
-              });
-          } catch (e) {
-            showFallback();
-          }
-        }
-
-        window.addEventListener("error", function () {
-          showFallback();
-        });
-
-        window.addEventListener("unhandledrejection", function () {
-          showFallback();
-        });
-
-        if (isWeChat()) {
-          if (openLink) openLink.target = "_self";
-          showFallback();
-          return;
-        }
-
-        if (!supportsModernJs()) {
-          if (openLink) openLink.target = "_self";
-          showFallback();
-          return;
-        }
-
-        loadPdfJs(function () {
-          initWorker();
-        });
-      })();
-    </script>
+    <footer class="footer">
+      <div class="container">© AEROSEEK</div>
+    </footer>
   </body>
 </html>
