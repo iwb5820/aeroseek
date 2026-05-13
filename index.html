@@ -92,8 +92,8 @@
         <canvas id="canvas"></canvas>
       </div>
 
-      <div class="fallback" id="fallback" hidden>
-        <div>当前环境不支持直接预览。</div>
+      <div class="fallback" id="fallback">
+        <div id="fallbackText">正在加载预览组件…</div>
         <div>
           请点击打开：
           <a href="Invitation%20Letter.pdf" target="_blank" rel="noreferrer"
@@ -103,6 +103,18 @@
       </div>
     </div>
 
+    <script>
+      (function () {
+        if (typeof globalThis !== "undefined") return;
+        if (typeof window !== "undefined") {
+          window.globalThis = window;
+          return;
+        }
+        if (typeof self !== "undefined") {
+          self.globalThis = self;
+        }
+      })();
+    </script>
     <script src="vendor/pdfjs/pdf.min.js"></script>
     <script>
       (function () {
@@ -110,6 +122,7 @@
         var toolbar = document.getElementById("toolbar");
         var viewer = document.getElementById("viewer");
         var fallback = document.getElementById("fallback");
+        var fallbackText = document.getElementById("fallbackText");
         var canvas = document.getElementById("canvas");
         var statusEl = document.getElementById("status");
         var prevBtn = document.getElementById("prev");
@@ -120,24 +133,28 @@
 
         openLink.href = pdfUrl;
 
-        function showFallback() {
+        function showFallback(message) {
           toolbar.hidden = true;
           viewer.hidden = true;
           fallback.hidden = false;
+          if (fallbackText) {
+            fallbackText.textContent = message || "当前环境不支持直接预览。";
+          }
         }
 
-        if (!window.pdfjsLib) {
-          showFallback();
-          return;
+        function showViewer() {
+          toolbar.hidden = false;
+          viewer.hidden = false;
+          fallback.hidden = true;
         }
-
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.js";
 
         var pdfDoc = null;
         var pageNum = 1;
         var scale = 1.2;
         var rendering = false;
         var pendingPage = null;
+        var renderStarted = false;
+        var watchdogTimer = null;
 
         function setStatus(text) {
           statusEl.textContent = text;
@@ -222,22 +239,52 @@
           zoom(0.2);
         });
 
-        toolbar.hidden = false;
-        viewer.hidden = false;
-        fallback.hidden = true;
-        updateButtons();
+        function startWatchdog() {
+          if (watchdogTimer) return;
+          watchdogTimer = setTimeout(function () {
+            if (!renderStarted) {
+              showFallback("预览加载超时（微信内核兼容性/网络限制），建议直接打开原文件。");
+            }
+          }, 6000);
+        }
 
-        window.pdfjsLib
-          .getDocument({ url: pdfUrl })
-          .promise.then(function (doc) {
-            pdfDoc = doc;
-            pageNum = 1;
-            setStatus("第 " + pageNum + " / " + pdfDoc.numPages + " 页");
-            renderPage(pageNum);
-          })
-          .catch(function () {
-            showFallback();
-          });
+        function init() {
+          try {
+            if (!window.pdfjsLib) {
+              showFallback("预览组件加载失败（pdf.js 未加载）。");
+              return;
+            }
+
+            startWatchdog();
+            showViewer();
+            updateButtons();
+
+            window.pdfjsLib
+              .getDocument({ url: pdfUrl, disableWorker: true })
+              .promise.then(function (doc) {
+                pdfDoc = doc;
+                pageNum = 1;
+                setStatus("第 " + pageNum + " / " + pdfDoc.numPages + " 页");
+                renderStarted = true;
+                renderPage(pageNum);
+              })
+              .catch(function () {
+                showFallback("预览加载失败，建议直接打开原文件。");
+              });
+          } catch (e) {
+            showFallback("预览初始化失败，建议直接打开原文件。");
+          }
+        }
+
+        window.addEventListener("error", function () {
+          showFallback("预览运行出错，建议直接打开原文件。");
+        });
+
+        window.addEventListener("unhandledrejection", function () {
+          showFallback("预览运行出错，建议直接打开原文件。");
+        });
+
+        init();
       })();
     </script>
   </body>
