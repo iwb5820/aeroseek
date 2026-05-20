@@ -291,12 +291,17 @@
         };
 
         var PDF_FILES = {
-          "zh-CN": "中文Aeroseek%20Catalog.pdf",
-          en: "英文Aeroseek%20Catalog.pdf",
+          "zh-CN": "中文Aeroseek Catalog.pdf",
+          en: "英文Aeroseek Catalog.pdf",
         };
 
         function getPdfUrl(lang) {
-          return PDF_FILES[lang] || PDF_FILES["zh-CN"];
+          var file = PDF_FILES[lang] || PDF_FILES["zh-CN"];
+          try {
+            return encodeURI(file);
+          } catch (e) {
+            return file;
+          }
         }
 
         function setLang(lang) {
