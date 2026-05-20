@@ -190,6 +190,12 @@
         background: rgba(207, 211, 220, 0.16);
       }
 
+      .btnRow {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
       .legal {
         margin-top: 12px;
         color: rgba(255, 255, 255, 0.46);
@@ -198,6 +204,10 @@
 
       @media (max-width: 860px) {
         .downloadBar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .btnRow {
           flex-direction: column;
           align-items: stretch;
         }
@@ -232,11 +242,16 @@
         <div class="downloadBar">
           <div class="downloadMeta">
             <div class="downloadTitle" data-i18n="dlTitle">产品资料（PDF）</div>
-            <div class="downloadHint" data-i18n="dlHint">点击打开 catalog.pdf</div>
+            <div class="downloadHint" data-i18n="dlHint">打开或下载产品资料</div>
           </div>
-          <a class="btn" id="pdfBtn" href="catalog.pdf" target="_blank" rel="noreferrer" data-i18n="dlBtn"
-            >打开 PDF</a
-          >
+          <div class="btnRow">
+            <a class="btn" id="pdfOpenBtn" href="catalog.pdf" target="_blank" rel="noreferrer" data-i18n="dlOpen"
+              >打开</a
+            >
+            <a class="btn" id="pdfDownloadBtn" href="catalog.pdf" target="_blank" rel="noreferrer" data-i18n="dlDownload"
+              >下载</a
+            >
+          </div>
         </div>
         <div class="legal">© AEROSEEK</div>
       </section>
@@ -255,8 +270,9 @@
             c3t: "处置",
             c3d: "策略联动，形成闭环。",
             dlTitle: "产品资料（PDF）",
-            dlHint: "点击打开 catalog.pdf",
-            dlBtn: "打开 PDF",
+            dlHint: "打开或下载产品资料",
+            dlOpen: "打开",
+            dlDownload: "下载",
           },
           en: {
             heroTitle: "Low-Altitude Security & Counter-UAS",
@@ -268,10 +284,20 @@
             c3t: "Respond",
             c3d: "Policy-driven actions and linkage.",
             dlTitle: "Product PDF",
-            dlHint: "Click to open catalog.pdf",
-            dlBtn: "Open PDF",
+            dlHint: "Open or download the catalog",
+            dlOpen: "Open",
+            dlDownload: "Download",
           },
         };
+
+        var PDF_FILES = {
+          "zh-CN": "中文Aeroseek%20Catalog.pdf",
+          en: "英文Aeroseek%20Catalog.pdf",
+        };
+
+        function getPdfUrl(lang) {
+          return PDF_FILES[lang] || PDF_FILES["zh-CN"];
+        }
 
         function setLang(lang) {
           var dict = STRINGS[lang] || STRINGS["zh-CN"];
@@ -288,6 +314,18 @@
 
           var btn = document.getElementById("langBtn");
           if (btn) btn.textContent = lang === "en" ? "中文" : "EN";
+
+          var openBtn = document.getElementById("pdfOpenBtn");
+          var downloadBtn = document.getElementById("pdfDownloadBtn");
+          var pdfUrl = getPdfUrl(lang);
+          if (openBtn) openBtn.setAttribute("href", pdfUrl);
+          if (downloadBtn) {
+            downloadBtn.setAttribute("href", pdfUrl);
+            downloadBtn.setAttribute(
+              "download",
+              lang === "en" ? "AEROSEEK-Catalog-EN.pdf" : "AEROSEEK-Catalog-CN.pdf"
+            );
+          }
         }
 
         function getInitLang() {
@@ -310,20 +348,31 @@
           });
         }
 
-        var pdfBtn = document.getElementById("pdfBtn");
-        if (pdfBtn) {
-          pdfBtn.addEventListener("click", function (e) {
-            e.preventDefault();
-            var url = pdfBtn.getAttribute("href") || "catalog.pdf";
-            var opened = null;
+        function openOrNavigate(url) {
+          var opened = null;
+          try {
+            opened = window.open(url, "_blank");
+          } catch (err) {}
+          if (!opened) {
             try {
-              opened = window.open(url, "_blank");
-            } catch (err) {}
-            if (!opened) {
-              try {
-                window.location.href = url;
-              } catch (err2) {}
-            }
+              window.location.href = url;
+            } catch (err2) {}
+          }
+        }
+
+        var pdfOpenBtn = document.getElementById("pdfOpenBtn");
+        if (pdfOpenBtn) {
+          pdfOpenBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            openOrNavigate(pdfOpenBtn.getAttribute("href") || "catalog.pdf");
+          });
+        }
+
+        var pdfDownloadBtn = document.getElementById("pdfDownloadBtn");
+        if (pdfDownloadBtn) {
+          pdfDownloadBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            openOrNavigate(pdfDownloadBtn.getAttribute("href") || "catalog.pdf");
           });
         }
       })();
