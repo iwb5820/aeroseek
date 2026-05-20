@@ -130,6 +130,16 @@
         max-width: 58ch;
       }
 
+      html[lang="en"] h1 {
+        font-size: clamp(22px, 3.2vw, 34px);
+        letter-spacing: -0.2px;
+      }
+
+      html[lang="en"] .sub {
+        margin-top: 8px;
+        max-width: 52ch;
+      }
+
       .main {
         flex: 1;
         display: flex;
@@ -321,8 +331,8 @@
             dlDownload: "下载",
           },
           en: {
-            heroTitle: "Low-Altitude Security & Counter-UAS",
-            heroSub: "Security for campuses, venues, and critical sites.",
+            heroTitle: "Low-Altitude Counter-UAS",
+            heroSub: "For campuses, venues, and critical sites.",
             c1t: "Detect",
             c1d: "Find and track targets.",
             c2t: "Identify",
